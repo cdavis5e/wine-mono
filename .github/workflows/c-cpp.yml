@@ -104,6 +104,21 @@ jobs:
           wine winetest/mscoree_test.exe $testname >>winetest-output.log 2>&1 || printf '::warning mscoree:%s test failed\n' $testname
           echo END $testname TEST >>winetest-output.log
         done
+    - name: Install Test Dependencies
+      run: |
+        sudo apt install xvfb unzip -y 1>&2
+    - name: Download Wine Mono tests
+      uses: actions/download-artifact@v2
+      with:
+        name: make tests-zip output
+    - name: Run Wine Mono tests
+      run: |
+        unzip wine-mono-*-tests.zip 2>&1
+        Xvfb :2 & 2>&1
+        export DISPLAY=:2
+        wine reg add 'HKCU\Software\Wine\WineDbg' /v ShowCrashDialog /t REG_DWORD /d 0 /f 2>&1
+        wine explorer /desktop=wine-mono-test cmd /c 'tests\run-tests >wine-mono-test-output.log 2>&1 && echo %ErrorLevel% > retval' 2>&1
+        if test x0 != x$(cat retval|sed 's/\r//'); then printf '::warning Wine Mono tests failed\n'; fi
     - name: linux test output capture
       uses: actions/upload-artifact@v2
       with:
